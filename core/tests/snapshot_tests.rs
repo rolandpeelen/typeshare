@@ -96,6 +96,9 @@ macro_rules! output_file_for_ident {
     (go) => {
         "output.go"
     };
+    (reasonml) => {
+        "output.re"
+    };
 }
 
 /// Simplifies the construction of `Language` instances for each language.
@@ -210,6 +213,21 @@ macro_rules! language_instance {
              package: "proto".to_string(),
              no_version_header: true,
              $($field: $val,)*
+            ..Default::default()
+        })
+    };
+
+    // Default ReasonML
+    (reasonml) => {
+        language_instance!(reasonml { })
+    };
+
+    // typescript with configuration fields forwarded
+    (reasonml {$($field:ident: $val:expr),* $(,)?}) => {
+        #[allow(clippy::needless_update)]
+        Box::new(typeshare_core::language::ReasonML {
+            no_version_header: true,
+            $($field: $val,)*
             ..Default::default()
         })
     };
@@ -349,6 +367,13 @@ static GO_MAPPINGS: Lazy<HashMap<String, String>> = Lazy::new(|| {
         .collect()
 });
 
+static REASON_ML_MAPPINGS: Lazy<HashMap<String, String>> = Lazy::new(|| {
+    [("Url", "string"), ("DateTime", "string")]
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect()
+});
+
 tests! {
     /// Enums
     can_generate_algebraic_enum: [
@@ -364,7 +389,8 @@ tests! {
             module_name: "colorsModule".to_string(),
         },
         typescript,
-        go
+        go,
+        reasonml
     ];
     can_generate_generic_enum: [
         swift {
@@ -372,7 +398,7 @@ tests! {
         },
         kotlin,
         scala,
-        typescript
+        typescript,
     ];
     can_generate_generic_struct: [
         swift {
@@ -380,7 +406,7 @@ tests! {
         },
         kotlin,
         scala,
-        typescript
+        typescript,
     ];
     can_generate_generic_type_alias: [
         swift {
@@ -388,9 +414,9 @@ tests! {
         },
         kotlin,
         scala,
-        typescript
+        typescript,
     ];
-    can_generate_slice_of_user_type: [swift, kotlin, scala, typescript, go];
+    can_generate_slice_of_user_type: [swift, kotlin, scala, typescript, go ];
     can_generate_readonly_fields: [
         typescript
     ];
@@ -408,8 +434,7 @@ tests! {
         typescript
     ];
     can_recognize_types_inside_modules: [
-        swift, kotlin, scala, typescript, go
-    ];
+        swift, kotlin, scala, typescript, go];
     test_simple_enum_case_name_support: [swift, kotlin, scala, typescript, go ];
     test_algebraic_enum_case_name_support: [
         swift {
@@ -425,7 +450,7 @@ tests! {
         },
         typescript,
         go
-    ];
+            ];
     can_apply_prefix_correctly: [ swift { prefix: "OP".to_string(), }, kotlin, scala,  typescript, go ];
     can_generate_empty_algebraic_enum: [ swift { prefix: "OP".to_string(), }, kotlin, scala,  typescript, go ];
     can_generate_algebraic_enum_with_skipped_variants: [swift, kotlin, scala,  typescript, go];
@@ -442,7 +467,7 @@ tests! {
         scala,
         typescript,
         go
-    ];
+            ];
     can_override_types: [swift, kotlin, scala, typescript, go];
 
     /// Structs
@@ -456,7 +481,7 @@ tests! {
         scala,
         typescript,
         go
-    ];
+            ];
     // TODO: kotlin and typescript don't appear to support this yet
     generates_empty_structs_and_initializers: [swift, kotlin, scala, typescript, go];
     test_default_decorators: [swift { default_decorators: vec!["Sendable".into(), "Identifiable".into()]}];
@@ -510,7 +535,7 @@ tests! {
     ];
     test_type_alias: [ swift { prefix: "OP".to_string(), }, kotlin, scala,  typescript, go ];
     test_optional_type_alias: [swift, kotlin, scala, typescript, go];
-    test_serialized_as: [ swift { prefix: "OP".to_string(), }, kotlin, scala,  typescript, go ];
+    test_serialized_as: [ swift { prefix: "OP".to_string(), }, kotlin, scala,  typescript, go  ];
     test_serialized_as_tuple: [
         swift {
             prefix: "OP".to_string(),
@@ -522,31 +547,31 @@ tests! {
             uppercase_acronyms: vec!["ID".to_string()],
         },
     ];
-    can_handle_serde_rename_all: [swift, kotlin, scala,  typescript, go];
-    can_handle_serde_rename_on_top_level: [swift { prefix: "OP".to_string(), }, kotlin, scala,  typescript, go];
-    can_generate_unit_structs: [swift, kotlin, scala, typescript, go];
-    kebab_case_rename: [swift, kotlin, scala,  typescript, go];
+    can_handle_serde_rename_all: [swift, kotlin, scala,  typescript, go ];
+    can_handle_serde_rename_on_top_level: [swift { prefix: "OP".to_string(), }, kotlin, scala,  typescript, go ];
+    can_generate_unit_structs: [swift, kotlin, scala, typescript, go ];
+    kebab_case_rename: [swift, kotlin, scala,  typescript, go ];
 
     /// Globals get topologically sorted
     orders_types: [swift, kotlin, go];
 
     /// Other
-    use_correct_integer_types: [swift, kotlin, scala,  typescript, go];
+    use_correct_integer_types: [swift, kotlin, scala, typescript, go ];
     // Only swift supports generating types with keywords
     generate_types_with_keywords: [swift];
     // TODO: how is this different from generates_empty_structs_and_initializers?
-    use_correct_decoded_variable_name: [swift, kotlin, scala,  typescript, go];
-    can_handle_unit_type: [swift, kotlin, scala,  typescript, go];
+    use_correct_decoded_variable_name: [swift, kotlin, scala,  typescript, go ];
+    can_handle_unit_type: [swift, kotlin, scala,  typescript, go ];
 
     //3 tests for adding decorators to enums and structs
     const_enum_decorator: [ swift{ prefix: "OP".to_string(), } ];
     algebraic_enum_decorator: [ swift{ prefix: "OP".to_string(), } ];
     struct_decorator: [ swift{ prefix: "OP".to_string(), } ];
-    serialize_field_as: [kotlin, swift, typescript, scala,  go];
-    serialize_type_alias: [kotlin, swift, typescript, scala,  go];
-    serialize_anonymous_field_as: [kotlin, swift, typescript, scala,  go];
-    boxed_value: [kotlin, swift, typescript, scala,  go];
-    recursive_enum_decorator: [kotlin, swift, typescript, scala,  go];
+    serialize_field_as: [kotlin, swift, typescript, scala, go ];
+    serialize_type_alias: [kotlin, swift, typescript, scala, go ];
+    serialize_anonymous_field_as: [kotlin, swift, typescript, scala, go ];
+    boxed_value: [kotlin, swift, typescript, scala, go ];
+    recursive_enum_decorator: [kotlin, swift, typescript, scala, go ];
 
     uppercase_go_acronyms: [
         go {
