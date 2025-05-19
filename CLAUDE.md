@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Implementation Notes
+
+1. Always check existing utility functions before implementing new ones. For example, use `core/src/rename.rs` for case conversion rather than creating custom functions.
+
 ## Project Overview
 
 Typeshare is a tool that converts Rust types into equivalent types in other languages (Swift, Go, Python, Kotlin, Scala, and TypeScript). It simplifies managing types across language boundaries by generating code that matches the Rust type definitions.

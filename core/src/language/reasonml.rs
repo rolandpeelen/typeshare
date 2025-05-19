@@ -38,6 +38,20 @@ impl Language for ReasonML {
     fn type_map(&mut self) -> &HashMap<String, String> {
         &self.type_mappings
     }
+    
+    #[allow(clippy::ptr_arg)]
+    fn format_simple_type(
+        &mut self,
+        base: &String,
+        _generic_types: &[String],
+    ) -> Result<String, RustTypeFormatError> {
+        Ok(if let Some(mapped) = self.type_map().get(base) {
+            mapped.into()
+        } else {
+            // For ReasonML, ensure type references are in camelCase
+            base.to_camel_case()
+        })
+    }
 
     fn format_special_type(
         &mut self,
@@ -115,7 +129,7 @@ impl Language for ReasonML {
         writeln!(
             w,
             "type {}{} = {};\n",
-            ty.id.renamed,
+            ty.id.renamed.to_camel_case(),
             generic_params,
             r#type,
         )?;
@@ -149,10 +163,17 @@ impl Language for ReasonML {
             String::new()
         };
 
+        let type_name = rs.id.renamed.to_camel_case();
+        
+        // Handle empty structs as opaque types
+        if rs.fields.is_empty() {
+            return writeln!(w, "type {};", type_name);
+        }
+        
         writeln!(
             w,
-            "[@bs.deriving jsConverter]\ntype {}{} = {{",
-            rs.id.renamed,
+            "type {}{} = {{",
+            type_name,
             generic_params
         )?;
 
@@ -176,8 +197,8 @@ impl Language for ReasonML {
             RustEnum::Unit(shared) => {
                 writeln!(
                     w,
-                    "[@bs.deriving jsConverter]\ntype {}{} =",
-                    shared.id.renamed,
+                    "type {}{} =",
+                    shared.id.renamed.to_camel_case(),
                     generic_params
                 )?;
 
@@ -186,16 +207,10 @@ impl Language for ReasonML {
                 writeln!(w, ";\n")
             }
             RustEnum::Algebraic { shared, .. } => {
-                writeln!(
-                    w,
-                    "[@bs.deriving jsConverter]\ntype {}{} =",
-                    shared.id.renamed,
-                    generic_params
-                )?;
-
-                self.write_enum_variants(w, e)?;
-
-                writeln!(w, ";\n")
+                // ReasonML doesn't support serde(tag, content, or rename) style enums
+                // Replace the enum comment with our unsupported message
+                writeln!(w, "/* Unsupported Serde Serialisation */")?;
+                writeln!(w, "type {};\n", shared.id.renamed.to_camel_case())
             }
         }
     }
@@ -221,14 +236,16 @@ impl ReasonML {
         match e {
             RustEnum::Unit(shared) => {
                 let variants = &shared.variants;
-                variants.iter().enumerate().try_for_each(|(idx, v)| match v {
-                    RustEnumVariant::Unit(shared) => {
-                        self.write_comments(w, 1, &shared.comments)?;
-                        let separator = if idx < variants.len() - 1 { " |" } else { "" };
-                        writeln!(w, "  | {}{}", shared.id.renamed, separator)
+                for v in variants.iter() {
+                    match v {
+                        RustEnumVariant::Unit(shared) => {
+                            self.write_comments(w, 1, &shared.comments)?;
+                            writeln!(w, "  | {}", shared.id.renamed)?;
+                        }
+                        _ => unreachable!(),
                     }
-                    _ => unreachable!(),
-                })
+                }
+                Ok(())
             }
             RustEnum::Algebraic {
                 tag_key,
@@ -236,21 +253,15 @@ impl ReasonML {
                 shared,
             } => {
                 let variants = &shared.variants;
-                for (idx, variant) in variants.iter().enumerate() {
+                for variant in variants.iter() {
                     match variant {
                         RustEnumVariant::Unit(shared) => {
                             self.write_comments(w, 1, &shared.comments)?;
-                            let separator = if idx < variants.len() - 1 {
-                                " |"
-                            } else {
-                                ""
-                            };
                             writeln!(
                                 w,
-                                "  | {}({}: string){}", 
+                                "  | {}({}: string)", 
                                 shared.id.renamed,
-                                tag_key,
-                                separator
+                                tag_key
                             )?;
                         }
                         RustEnumVariant::Tuple { ty, shared } => {
@@ -258,19 +269,13 @@ impl ReasonML {
                             let r#type = self
                                 .format_type(ty, e.shared().generic_types.as_slice())
                                 .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-                            let separator = if idx < variants.len() - 1 {
-                                " |"
-                            } else {
-                                ""
-                            };
                             writeln!(
                                 w,
-                                "  | {}({}: string, {}: {}){}", 
+                                "  | {}({}: string, {}: {})", 
                                 shared.id.renamed,
                                 tag_key,
                                 content_key,
-                                r#type,
-                                separator
+                                r#type
                             )?;
                         }
                         RustEnumVariant::AnonymousStruct { fields, shared } => {
@@ -285,12 +290,7 @@ impl ReasonML {
                                 self.write_field(w, field, e.shared().generic_types.as_slice())?;
                             }
                             
-                            let separator = if idx < variants.len() - 1 {
-                                " |"
-                            } else {
-                                ""
-                            };
-                            writeln!(w, "  }}){}", separator)?;
+                            writeln!(w, "  }})")?;
                         }
                     }
                 }
@@ -313,11 +313,8 @@ impl ReasonML {
                 .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?,
         };
         
-        let type_str = if field.ty.is_optional() || field.has_default {
-            format!("option({})", reasonml_ty)
-        } else {
-            reasonml_ty
-        };
+        // If the type itself is already optional (from Option<T>), don't double-wrap it
+        let type_str = reasonml_ty;
         
         writeln!(
             w,
@@ -366,3 +363,4 @@ fn reasonml_property_aware_rename(name: &str) -> String {
     }
     name.to_string()
 }
+

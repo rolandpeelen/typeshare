@@ -139,6 +139,9 @@ macro_rules! output_file_for_ident {
     (kotlin) => {
         "output.kt"
     };
+    (reasonml) => {
+        "output.re"
+    };
     (scala) => {
         "output.scala"
     };
@@ -216,6 +219,21 @@ macro_rules! language_instance {
     (python {$($field:ident: $val:expr),* $(,)?}) => {
         #[allow(clippy::needless_update)]
         Box::new(typeshare_core::language::Python {
+            no_version_header: true,
+            $($field: $val,)*
+            ..Default::default()
+        })
+    };
+
+    // Default ReasonML
+    (reasonml) => {
+        language_instance!(reasonml { })
+    };
+
+    // ReasonML with configuration fields forwarded
+    (reasonml {$($field:ident: $val:expr),* $(,)?}) => {
+        #[allow(clippy::needless_update)]
+        Box::new(typeshare_core::language::ReasonML {
             no_version_header: true,
             $($field: $val,)*
             ..Default::default()
@@ -434,6 +452,17 @@ static TYPESCRIPT_MAPPINGS: Lazy<HashMap<String, String>> = Lazy::new(|| {
     .collect()
 });
 
+static REASONML_MAPPINGS: Lazy<HashMap<String, String>> = Lazy::new(|| {
+    [
+        ("Url", "string"),
+        ("DateTime", "Js.Date.t"),
+        ("Vec<u8>", "array(int)"),
+    ]
+    .iter()
+    .map(|(k, v)| (k.to_string(), v.to_string()))
+    .collect()
+});
+
 static GO_MAPPINGS: Lazy<HashMap<String, String>> = Lazy::new(|| {
     [
         ("Url", "string"),
@@ -471,6 +500,7 @@ tests! {
             module_name: "colorsModule".to_string(),
         },
         typescript,
+        reasonml,
         go,
         python
     ];
@@ -499,7 +529,7 @@ tests! {
         scala,
         typescript
     ];
-    can_generate_const: [typescript, go, python];
+    can_generate_const: [typescript, reasonml, go, python];
     can_generate_slice_of_user_type: [swift, kotlin, scala, typescript, go, python];
     can_generate_readonly_fields: [
         typescript
@@ -511,6 +541,7 @@ tests! {
         kotlin,
         scala,
         typescript,
+        reasonml,
         go,
         python
     ];
@@ -559,7 +590,7 @@ tests! {
     can_override_types: [swift, kotlin, scala, typescript, go];
 
     /// Structs
-    can_generate_simple_struct_with_a_comment: [kotlin, swift, typescript, scala, go, python];
+    can_generate_simple_struct_with_a_comment: [kotlin, swift, typescript, reasonml, scala, go, python];
     generate_types: [kotlin, swift, typescript, scala,  go, python];
     can_handle_serde_rename: [
         swift {
@@ -628,7 +659,7 @@ tests! {
             type_mappings: super::PYTHON_MAPPINGS.clone()
         }
     ];
-    test_type_alias: [ swift { prefix: "OP".to_string(), }, kotlin, scala,  typescript, go, python ];
+    test_type_alias: [ swift { prefix: "OP".to_string(), }, kotlin, scala, typescript, reasonml, go, python ];
     test_optional_type_alias: [swift, kotlin, scala, typescript, go, python];
     test_serialized_as: [ swift { prefix: "OP".to_string(), }, kotlin, scala,  typescript, go, python ];
     test_serialized_as_tuple: [
@@ -666,7 +697,7 @@ tests! {
     serialize_field_as: [kotlin, swift, typescript, scala,  go, python];
     serialize_type_alias: [kotlin, swift, typescript, scala,  go, python];
     serialize_anonymous_field_as: [kotlin, swift, typescript, scala, go, python];
-    smart_pointers: [kotlin, swift, typescript, scala, go, python];
+    smart_pointers: [kotlin, swift, typescript, reasonml, scala, go, python];
     recursive_enum_decorator: [kotlin, swift, typescript, scala, go, python];
 
     uppercase_go_acronyms: [
