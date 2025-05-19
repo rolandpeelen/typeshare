@@ -27,7 +27,7 @@ use typeshare_core::language::Go;
 use typeshare_core::language::Python;
 use typeshare_core::{
     context::ParseContext,
-    language::{CrateName, Kotlin, Language, Scala, SupportedLanguage, Swift, TypeScript},
+    language::{CrateName, Kotlin, Language, ReasonML, Scala, SupportedLanguage, Swift, TypeScript},
     parser::ParsedData,
     reconcile::reconcile_aliases,
 };
@@ -88,6 +88,7 @@ fn generate_types(config_file: Option<&Path>, options: &Args) -> anyhow::Result<
         None => panic!("no language specified; `clap` should have guaranteed its presence"),
         Some(language) => match language {
             args::AvailableLanguage::Kotlin => SupportedLanguage::Kotlin,
+            args::AvailableLanguage::ReasonML => SupportedLanguage::ReasonML,
             args::AvailableLanguage::Scala => SupportedLanguage::Scala,
             args::AvailableLanguage::Swift => SupportedLanguage::Swift,
             args::AvailableLanguage::Typescript => SupportedLanguage::TypeScript,
@@ -200,6 +201,10 @@ fn language(
             module_name: config.kotlin.module_name,
             prefix: config.kotlin.prefix,
             type_mappings: config.kotlin.type_mappings,
+            ..Default::default()
+        }),
+        SupportedLanguage::ReasonML => Box::new(ReasonML {
+            type_mappings: config.typescript.type_mappings.clone(), // Start with TS mappings as a base
             ..Default::default()
         }),
         SupportedLanguage::Scala => Box::new(Scala {

@@ -10,6 +10,7 @@ typeshare --lang=typescript some/file.rs
 typeshare --lang=swift some/file.rs
 typeshare --lang=kotlin --java-package=com.some.package.name some/file.rs
 typeshare --lang=scala --scala-package=com.some.package.name some/file.rs
+typeshare --lang=reasonml some/file.rs
 ```
 
 ## Generating FFI bindings

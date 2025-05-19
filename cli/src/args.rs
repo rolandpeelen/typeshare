@@ -5,6 +5,7 @@ use std::path::PathBuf;
 #[non_exhaustive]
 pub enum AvailableLanguage {
     Kotlin,
+    ReasonML,
     Scala,
     Swift,
     Typescript,

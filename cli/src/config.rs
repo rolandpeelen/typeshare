@@ -29,6 +29,12 @@ pub struct KotlinParams {
 
 #[derive(Default, Serialize, Deserialize, Debug, PartialEq, Eq)]
 #[serde(default)]
+pub struct ReasonMLParams {
+    pub type_mappings: HashMap<String, String>,
+}
+
+#[derive(Default, Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[serde(default)]
 pub struct ScalaParams {
     pub package: String,
     pub module_name: String,
@@ -70,6 +76,7 @@ pub(crate) struct Config {
     pub swift: SwiftParams,
     pub typescript: TypeScriptParams,
     pub kotlin: KotlinParams,
+    pub reasonml: ReasonMLParams,
     pub scala: ScalaParams,
     #[cfg(feature = "python")]
     pub python: PythonParams,

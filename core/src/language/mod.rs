@@ -22,6 +22,7 @@ use std::{
 mod go;
 mod kotlin;
 mod python;
+mod reasonml;
 mod scala;
 mod swift;
 mod typescript;
@@ -29,6 +30,7 @@ mod typescript;
 pub use go::Go;
 pub use kotlin::Kotlin;
 pub use python::Python;
+pub use reasonml::ReasonML;
 pub use scala::Scala;
 pub use swift::GenericConstraints;
 pub use swift::Swift;
@@ -99,6 +101,7 @@ pub type ScopedCrateTypes<'a> = BTreeMap<SortedCrateNames<'a>, SortedTypeNames<'
 pub enum SupportedLanguage {
     Go,
     Kotlin,
+    ReasonML,
     Scala,
     Swift,
     TypeScript,
@@ -109,7 +112,7 @@ impl SupportedLanguage {
     /// Returns an iterator over all supported language variants.
     pub fn all_languages() -> impl Iterator<Item = Self> {
         use SupportedLanguage::*;
-        [Go, Kotlin, Scala, Swift, TypeScript, Python].into_iter()
+        [Go, Kotlin, ReasonML, Scala, Swift, TypeScript, Python].into_iter()
     }
 
     /// Get the file name extension for the supported language.
@@ -117,6 +120,7 @@ impl SupportedLanguage {
         match self {
             SupportedLanguage::Go => "go",
             SupportedLanguage::Kotlin => "kt",
+            SupportedLanguage::ReasonML => "re",
             SupportedLanguage::Scala => "scala",
             SupportedLanguage::Swift => "swift",
             SupportedLanguage::TypeScript => "ts",
@@ -132,6 +136,7 @@ impl FromStr for SupportedLanguage {
         match s.to_lowercase().as_str() {
             "go" => Ok(Self::Go),
             "kotlin" => Ok(Self::Kotlin),
+            "reasonml" => Ok(Self::ReasonML),
             "scala" => Ok(Self::Scala),
             "swift" => Ok(Self::Swift),
             "typescript" => Ok(Self::TypeScript),
