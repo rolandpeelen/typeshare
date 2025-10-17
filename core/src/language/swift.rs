@@ -1,4 +1,5 @@
 use crate::{
+    error::GenerationError,
     language::{Language, SupportedLanguage},
     parser::{remove_dash_from_identifier, DecoratorKind, ParsedData},
     rename::RenameExt,
@@ -6,7 +7,6 @@ use crate::{
         DecoratorMap, RustConst, RustEnum, RustEnumVariant, RustStruct, RustTypeAlias,
         RustTypeFormatError, SpecialRustType,
     },
-    GenerationError,
 };
 use itertools::{Either, Itertools};
 use joinery::JoinableIterator;
@@ -254,11 +254,13 @@ impl Language for Swift {
             w,
             "public typealias {}{} = {}",
             type_name,
-            (!ty.generic_types.is_empty())
-                .then(|| format!("<{}>", ty.generic_types.join(", ")))
-                .unwrap_or_default(),
+            if !ty.generic_types.is_empty() {
+                format!("<{}>", ty.generic_types.join(", "))
+            } else {
+                Default::default()
+            },
             self.format_type(&ty.r#type, ty.generic_types.as_slice())
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?
+                .map_err(std::io::Error::other)?
         )?;
 
         Ok(())
@@ -302,9 +304,11 @@ impl Language for Swift {
         writeln!(
             w,
             "public struct {type_name}{}: {} {{",
-            (!rs.generic_types.is_empty())
-                .then(|| format!("<{generic_names_and_constraints}>",))
-                .unwrap_or_default(),
+            if !rs.generic_types.is_empty() {
+                format!("<{generic_names_and_constraints}>",)
+            } else {
+                Default::default()
+            },
             decs
         )?;
 
@@ -335,7 +339,7 @@ impl Language for Swift {
                 Some(type_override) => type_override.to_owned(),
                 None => self
                     .format_type(&f.ty, rs.generic_types.as_slice())
-                    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?,
+                    .map_err(io::Error::other)?,
             };
 
             writeln!(
@@ -343,9 +347,11 @@ impl Language for Swift {
                 "\tpublic let {}: {}{}",
                 remove_dash_from_identifier(swift_keyword_aware_rename(&f.id.renamed).as_ref()),
                 case_type,
-                (f.has_default && !f.ty.is_optional())
-                    .then_some("?")
-                    .unwrap_or_default()
+                if f.has_default && !f.ty.is_optional() {
+                    "?"
+                } else {
+                    Default::default()
+                }
             )?;
         }
 
@@ -370,16 +376,18 @@ impl Language for Swift {
                 Some(type_override) => type_override.to_owned(),
                 None => self
                     .format_type(&f.ty, rs.generic_types.as_slice())
-                    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?,
+                    .map_err(io::Error::other)?,
             };
 
             init_params.push(format!(
                 "{}: {}{}",
                 remove_dash_from_identifier(&f.id.renamed),
                 swift_ty,
-                (f.has_default && !f.ty.is_optional())
-                    .then_some("?")
-                    .unwrap_or_default()
+                if f.has_default && !f.ty.is_optional() {
+                    "?"
+                } else {
+                    Default::default()
+                }
             ));
         }
 
@@ -454,9 +462,11 @@ impl Language for Swift {
         writeln!(
             w,
             "public {indirect}enum {enum_name}{}: {} {{",
-            (!e.shared().generic_types.is_empty())
-                .then(|| format!("<{generic_names_and_constraints}>",))
-                .unwrap_or_default(),
+            if !e.shared().generic_types.is_empty() {
+                format!("<{generic_names_and_constraints}>",)
+            } else {
+                Default::default()
+            },
             decs
         )?;
 
@@ -593,7 +603,7 @@ impl Swift {
                         {
                             // If the name starts with a digit just add an underscore
                             // to the front and make it valid
-                            variant_name = format!("_{}", variant_name);
+                            variant_name = format!("_{variant_name}");
                         }
 
                         variant_name
@@ -633,7 +643,7 @@ impl Swift {
                             let content_optional = ty.is_optional();
                             let case_type = self
                                 .format_type(ty, e.shared().generic_types.as_slice())
-                                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+                                .map_err(io::Error::other)?;
                             write!(w, "({})", swift_keyword_aware_rename(&case_type))?;
 
                             if content_optional {
@@ -795,7 +805,7 @@ impl Swift {
 
     /// Write the `CodableVoid` type.
     fn write_codable(&self, w: &mut dyn Write, output_string: &str) -> io::Result<()> {
-        writeln!(w, "{}", output_string)
+        writeln!(w, "{output_string}")
     }
 
     /// Build the generic constraints output. This checks for the `swiftGenericConstraints` typeshare attribute and combines

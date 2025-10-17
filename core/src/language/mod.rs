@@ -1,12 +1,12 @@
 use crate::{
-    parser::{ParseError, ParsedData},
+    error::{GenerationError, ParseError},
+    parser::ParsedData,
     rust_types::{
         Id, RustConst, RustEnum, RustEnumVariant, RustItem, RustStruct, RustType, RustTypeAlias,
         RustTypeFormatError, SpecialRustType,
     },
     topsort::topsort,
     visitors::ImportedType,
-    GenerationError,
 };
 use itertools::Itertools;
 use log::warn;
@@ -261,9 +261,11 @@ pub trait Language {
             Ok(format!(
                 "{}{}",
                 self.format_simple_type(base, generic_types)?,
-                (!parameters.is_empty())
-                    .then(|| self.format_generic_parameters(parameters))
-                    .unwrap_or_default()
+                if !parameters.is_empty() {
+                    self.format_generic_parameters(parameters)
+                } else {
+                    Default::default()
+                }
             ))
         }
     }
@@ -359,7 +361,7 @@ pub trait Language {
     ///
     /// This function will write out:
     ///
-    /// ```compile_fail
+    /// ```rust
     /// /// Generated type representing the anonymous struct variant `<make_struct_name>` of the `AlgebraicEnum` rust enum
     /// /* the struct definition for whatever language */
     /// ```
